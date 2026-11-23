@@ -1,0 +1,88 @@
+# ==============================================================================
+# YOLOv8 Document Field Detection Configuration (configs/yolo_v1.yaml)
+# Target Classes: vendor, invoice_no, date, gstin, table, total
+# ==============================================================================
+
+# Model Architecture & Checkpoint
+# Tradeoff: Nano weights (3.2M params) give fast CPU/GPU inference and prevent overfitting on small datasets (n=59).
+# Larger backbones (s/m/l) risk memorizing static template coordinates rather than learning transferable visual features.
+model: yolov8n.pt
+
+# Dataset Definition
+# Tradeoff: Relative path to data.yaml enables portable execution across local workstations and Google Colab environments.
+# Absolute paths would break when transferring workspace directories to cloud runtimes.
+data: data/yolo_v1/data.yaml
+
+# Input Canvas Resolution
+# Tradeoff: 1024px preserves legible aspect ratios for small 8-10pt fonts (GSTIN, dates) without illegible raster blur.
+# Lower resolution (640px) merges adjacent text lines, while 1280px+ drastically increases VRAM and slows training.
+imgsz: 1024
+
+# Training Schedule & Early Stopping
+# Tradeoff: 100 epochs allows cosine LR scheduler to complete warmup and feature alignment on limited data.
+# 300+ epochs is redundant for fine-tuning pretrained weights and increases risk of overfitting on frequent vendors.
+epochs: 100
+
+# Early Stopping Patience
+# Tradeoff: Patience 30 stops training if validation mAP50 fails to improve for 30 consecutive epochs.
+# Lower patience (<15) risks premature termination during LR warmup plateaus, while 50+ wastes compute.
+patience: 30
+
+# Batch Size
+# Tradeoff: Batch size 8 fits comfortably within Colab T4 GPU VRAM (16 GB) at 1024px while maintaining batch-norm stability.
+# Larger batches (16+) trigger out-of-memory errors on high-resolution canvases without gradient accumulation.
+batch: 8
+
+# Reproducibility & Determinism
+# Tradeoff: Seed 0 enforces deterministic data shuffling and consistent initial weight states across independent runs.
+# True determinism disables non-deterministic CuDNN autotuning with negligible runtime penalty for full auditability.
+seed: 0
+deterministic: true
+
+# Device & Worker Threads
+# Tradeoff: Device 0 targets standard primary GPU (T4/V100/A100); train script auto-switches to cpu if unavailable.
+# 4 dataloader workers optimize image prefetching without saturating CPU thread contention on standard VMs.
+device: 0
+workers: 4
+
+# Document-Appropriate Augmentation Hyperparameters
+# ------------------------------------------------------------------------------
+
+# Horizontal & Vertical Flipping
+# Tradeoff: Invoices possess strict left-to-right reading order; horizontal or vertical flips destroy document grammar.
+# Disabling flips (0.0) ensures the network is never penalized or trained on inverted/mirrored text that cannot occur.
+fliplr: 0.0
+flipud: 0.0
+
+# In-plane Document Rotation (Degrees)
+# Tradeoff: Modest rotation (up to 5.0 deg) teaches invariance to real-world mobile scan and flatbed feeder skew.
+# Larger rotations (>10 deg) inflate axis-aligned bounding boxes into oversized rectangles, degrading IoU precision.
+degrees: 5.0
+
+# Perspective Distortion
+# Tradeoff: Subtle perspective (0.0005) simulates minor camera tilt remaining after document boundary quad warping.
+# Stronger perspective values keystone small text rows, rendering date and GSTIN characters unreadable for OCR crops.
+perspective: 0.0005
+
+# Scaling (Zoom In / Zoom Out)
+# Tradeoff: Scale jitter (+/- 30%) trains the detector to handle invoices captured from varying distances and DPIs.
+# Extreme scaling (>0.5) clips critical top-margin logos or downsizes fine line-item table text below anchor resolution.
+scale: 0.3
+
+# Translation
+# Tradeoff: Modest translation (+/- 10%) prevents positional overfitting where header fields are expected only at top edge.
+# Excessive translation (>0.2) shifts header vendor blocks or footer total boxes completely outside the visible canvas.
+translate: 0.1
+
+# Color / Illumination Jitter (HSV)
+# Tradeoff: Jittering hue (0.015), saturation (0.7), and value (0.4) handles yellowed paper, lighting tints, and thermal receipts.
+# High hue jitter (>0.05) creates psychedelic color artifacts unrepresentative of business documents.
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+
+# Mosaic & Close Mosaic Schedule
+# Tradeoff: Mosaic 1.0 concatenates 4 bill patches into one view, forcing the model to detect fields at multiple scales.
+# Disabling mosaic for the final 10 epochs (close_mosaic 10) trains on intact document layouts for crisp boundary convergence.
+mosaic: 1.0
+close_mosaic: 10

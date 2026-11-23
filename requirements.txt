@@ -1,0 +1,25 @@
+# Computer Vision & Image Processing
+opencv-python==5.0.0.93
+numpy==2.4.6
+matplotlib==3.11.2
+
+# Object Detection & Deep Learning
+ultralytics==8.4.215
+
+# OCR Engines
+easyocr==1.7.2
+
+# Data Processing & Export
+pandas==3.1.1
+openpyxl==3.1.5
+datasets==5.2.0
+
+# PDF Document Processing
+pymupdf==2.1
+
+# Validation & Configuration
+pyyaml==6.0.3
+
+# Testing & OCR Metrics
+pytest==9.2.0
+jiwer==4.0.0

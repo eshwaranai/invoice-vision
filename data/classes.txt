@@ -1,0 +1,8 @@
+vendor
+invoice_no
+date
+gstin
+table
+total
+qr
+stamp_signature

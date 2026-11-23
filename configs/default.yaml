@@ -1,0 +1,116 @@
+# ==============================================================================
+# Indian Invoice & Bill Extraction Pipeline - Default Configuration
+# ==============================================================================
+
+pipeline:
+  name: "indian_invoice_vision"
+  version: "0.1.0"
+  device: "auto"  # "cuda", "cpu", or "auto"
+
+stages:
+  # Stage 1: Document Boundary Detection & Perspective Rectification
+  page_detection:
+    enabled: true
+    min_quad_area_ratio: 0.20
+
+  perspective_warp:
+    enabled: true
+    target_dpi: 300
+
+  page_detect_and_warp:
+    enabled: true
+    min_quad_area_ratio: 0.20
+    strategy: "grabcut_fallback"  # Primary: center-seeded GrabCut (93.8% on light surface), Fallback: contour
+
+  # Stage 2: Orientation Correction & Deskewing
+  deskew:
+    enabled: true
+    max_angle: 30.0
+
+  # Stage 3: Quality Assessment (Blur, Page Brightness, Resolution)
+  # Note: Global max_brightness and glare checks were removed because white invoice paper
+  # naturally has >80% saturated background pixels (intensity 255). A naive global threshold
+  # either causes 100% false rejections on clean scans or requires dummy non-triggerable thresholds (255 / 0.95).
+  # We use page-relative brightness to detect true underexposure.
+  quality_check:
+    enabled: true
+    blur_threshold: 45.0  # Calibrated Laplacian variance warn threshold
+    reject_blur_threshold: 28.0  # Calibrated fatal reject threshold
+    min_page_brightness: 70.0  # Dim lighting warning threshold
+    reject_page_brightness: 45.0  # Critically underexposed rejection threshold
+
+  quality_gate:
+    enabled: true
+    min_blur: 45.0
+    reject_blur: 28.0
+    min_page_brightness: 70.0
+    reject_page_brightness: 45.0
+
+  # Stage 4: Illumination Equalization & Shadow Removal
+  shadow_removal:
+    enabled: true
+    kernel_size: 25
+
+  # Stage 5: Local Contrast Enhancement (CLAHE)
+  clahe:
+    enabled: true
+    clip_limit: 2.0
+    tile_grid_size: [8, 8]
+
+  # Stage 6: Noise Reduction
+  denoise:
+    enabled: false
+    method: "bilateral"  # "bilateral" or "fast_nl_means"
+    sigma: 30.0
+
+  # Stage 7: Legacy Image Enhancement toggle
+  enhancement:
+    enabled: true
+    method: "clahe"  # "adaptive_threshold", "clahe", "otsu"
+
+  # Stage 4: YOLO Field Detector (Detects Header, Totals, Table, Vendor, GSTIN boxes)
+  field_detector:
+    enabled: true
+    conf_threshold: 0.25
+    iou_threshold: 0.45
+
+  # Stage 5: Crop-level OCR (Targeted extraction on detected regions)
+  crop_ocr:
+    enabled: true
+    primary_engine: "paddleocr"  # "paddleocr", "easyocr", "tesseract"
+    fallback_engine: "easyocr"
+
+  # Stage 6: Parsing (Regex & Rule-based semantic extractors)
+  parsing:
+    enabled: true
+    extract_gstin: true
+    extract_dates: true
+    extract_amounts: true
+    extract_line_items: true
+
+  # Stage 7: Validation (GSTIN Checksum, Arithmetic Consistency, Date Sanity)
+  validation:
+    enabled: true
+    gstin_checksum: true
+    arithmetic_reconciliation: true
+
+  # Stage 8: Confidence Scoring (Multi-factor reliability assessment)
+  confidence_scoring:
+    enabled: true
+    ocr_weight: 0.40
+    detection_weight: 0.30
+    validation_weight: 0.30
+
+  # Stage 9: Human-in-the-Loop Review UI (Streamlit interface)
+  review_ui:
+    enabled: true
+    flag_low_confidence: true
+    confidence_threshold: 0.80
+
+  # Stage 10: Multi-format Export (JSON, CSV, Excel)
+  export:
+    enabled: true
+    formats:
+      - "json"
+      - "csv"
+      - "xlsx"
