@@ -31,13 +31,13 @@ The end-to-end pipeline is frozen at the following exact configuration:
 | **Review Confidence Bar** | `high_conf_bar = 0.25` | Flagged with `needs_review = True` if `conf < 0.25` |
 | **GSTIN Upscale Heuristic** | Adaptive 3x bicubic if `crop_h <= 32` px, 1x otherwise | Preserves high-res 300 DPI text; enhances small scans |
 | **GSTIN Parsers & Validators** | `position_aware_gstin_correct` + Mod-36 Luhn checksum | Fixed 15-char regex + character substitution table |
-| **Date & Amount Parsers** | ISO normalization (dayfirst priority) + numeric parse | Strict float $\le 0.001$, Lenient $\le 0.01$ |
+| **Date & Amount Parsers** | ISO normalization (dayfirst priority) + numeric parse | Strict float <= 0.001, Lenient <= 0.01 |
 | **Scoring Code** | `scripts/eval_pipeline.py` / `scripts/run_final_test.py` | Exact matching evaluation logic |
 | **Frozen Git Commit Hash** | `aa2e9a64ecbf712ef86cc4e7fa40840c0c64f646` | Verified against git tree status |
 
 ### Frozen Files & Artifact Integrity Manifest
 
-Every production source file, configuration, runner script, and model weight file is pinned by SHA-256 hash. If any file hash differs at runtime, `scripts/run_final_test.py` strictly refuses execution:
+Every tracked source file, configuration, runner script, and model weight file is pinned by SHA-256 hash. If any file hash differs at runtime, `scripts/run_final_test.py` strictly refuses execution:
 
 | File Path | SHA-256 Checksum |
 | :--- | :--- |
@@ -72,11 +72,11 @@ Every production source file, configuration, runner script, and model weight fil
 - **Dataset Split**: `data/splits_v3.json` (`combined_clean_splits['test']`)
 - **Total Test Images**: 14
 - **Total Test Bounding Boxes**: 81
-  - **Public Invoices ($n=6$)**: `gst_000.jpg`, `gst_012.jpg`, `gst_013.jpg`, `gst_014.jpg`, `gst_020.jpg`, `gst_021.jpg`
-  - **Own Invoices ($n=8$)**: `own_001_p1.png`, `own_002_p1.png`, `own_003_p1.png`, `own_010_p1.png`, `own_010_p2.png`, `own_011_p1.png`, `own_012_p1.png`, `own_013_p1.png`
+  - **Public Invoices (n=6)**: `gst_000.jpg`, `gst_012.jpg`, `gst_013.jpg`, `gst_014.jpg`, `gst_020.jpg`, `gst_021.jpg`
+  - **Own Invoices (n=8)**: `own_001_p1.png`, `own_002_p1.png`, `own_003_p1.png`, `own_010_p1.png`, `own_010_p2.png`, `own_011_p1.png`, `own_012_p1.png`, `own_013_p1.png`
 - **Template Diversity**: Spans diverse commercial formats (including Microsoft, Sai Computer, Net2Source, utility, and retail templates).
 - **Mandatory Reporting Flag**:
-  Because the number of target entity instances on the test split satisfies $n < 15$ for individual fields, every reported metric must carry the explicit statistical caveat flag:
+  Because the number of target entity instances on the test split satisfies n < 15 for individual fields, every reported metric must carry the explicit statistical caveat flag:
   `"(too few to measure)"`.
 
 ### Frozen Test Label Manifest
@@ -114,17 +114,17 @@ The test evaluation must execute and report the following metrics across three s
    - Validation mAP50 and mAP50-95 computed on the 14 test images.
    - Per-class AP50 for `vendor`, `invoice_no`, `date`, `gstin`, `table`, `total`.
 2. **Operating Point Localization & Quality (`conf = 0.05`)**:
-   - Detection Recall and Precision at IoU $\ge 0.5$ per class.
+   - Detection Recall and Precision at IoU >= 0.5 per class.
    - Average false detections per image.
 3. **Field Extraction Accuracy**:
    - Strict and lenient accuracy for `invoice_no`, `date`, `total`.
    - Detection miss rate per field.
 4. **Vendor Localization**:
-   - Evaluated strictly by detection localization recall (IoU $\ge 0.5$).
+   - Evaluated strictly by detection localization recall (IoU >= 0.5).
 5. **GSTIN Set Retrieval**:
    - Total ground-truth tax identifiers (supplier + buyer).
    - Setting (a) unconstrained recall & precision.
-   - Setting (a) constrained to human annotation box overlap (IoU $\ge 0.3$).
+   - Setting (a) constrained to human annotation box overlap (IoU >= 0.3).
    - Setting (b) and Setting (c) recall & precision.
 6. **Breakdown by Template Family**:
    - Performance aggregated across distinct invoice template groups.

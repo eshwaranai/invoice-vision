@@ -8,7 +8,7 @@ This document provides the standard operating procedure for reviewing, refining,
 
 - **Tool**: [MakeSense.ai](https://www.makesense.ai/) (Free, open-source online annotation tool).
 - **Privacy Assurance**: MakeSense.ai runs **100% client-side in the browser**. No images or bounding box annotations are transferred or uploaded to external servers or cloud services, guaranteeing that personal documents remain completely confidential on the local machine.
-- **Batch Architecture**: Document batches are pre-partitioned into bounded folders ($\le 15$ images each in `data/annotation/batch_XX`) to prevent browser canvas memory spikes and keep review sessions manageable.
+- **Batch Architecture**: Document batches are pre-partitioned into bounded folders (<= 15 images each in `data/annotation/batch_XX`) to prevent browser canvas memory spikes and keep review sessions manageable.
 
 ---
 
@@ -44,7 +44,7 @@ This document provides the standard operating procedure for reviewing, refining,
 4. Click **"Start project"**.
 
 ### Step 5: Import YOLO Pre-Labels
-1. In the top navigation bar, click **`Actions`** $\rightarrow$ **`Import Annotations`**.
+1. In the top navigation bar, click **`Actions`** -> **`Import Annotations`**.
 2. Select **`Single file or multiple files in YOLO format`**.
 3. In the file dialog, select **all `.txt` files** from the batch folder (`data/annotation/batch_XX/*.txt`).
 4. MakeSense will automatically map the coordinates to the image dimensions and display the pre-labeled bounding boxes.
@@ -58,7 +58,7 @@ Go through each image sequentially. Use keyboard shortcuts for fast navigation:
 
 For every image, perform the following quality corrections:
 1. **Fix Shifted or Loose Boxes**:
-   - Drag handles to adjust box boundaries so they tightly enclose text ink with $\approx 2\text{ px}$ of padding.
+   - Drag handles to adjust box boundaries so they tightly enclose text ink with ≈ 2 px of padding.
    - Ensure bounding boxes do **NOT** extend into table gridlines or neighboring text rows.
 2. **Delete False Positives**:
    - Remove spurious boxes (e.g., phone numbers or PIN codes mistakenly tagged as `invoice_no`, or subtotal amounts tagged as `total`).
@@ -79,7 +79,7 @@ For every image, perform the following quality corrections:
 > Always finish and export the batch before closing the browser.
 
 ### Step 7: Export Annotations
-1. Once all images in the batch are verified, click **`Actions`** $\rightarrow$ **`Export Annotations`**.
+1. Once all images in the batch are verified, click **`Actions`** -> **`Export Annotations`**.
 2. Select: **`A .zip package containing files in YOLO format`**.
 3. Click **"Export"** to download the archive (typically named `labels_my-project_...zip`).
 
@@ -102,7 +102,7 @@ For `invoice_no`, `date`, `gstin`, and `total`, **annotate ONLY the VALUE string
 - *Engineering Decision*: Downstream parsing relies on crop-level OCR. If the keyword is inside the crop, the OCR output contains both label and value, requiring complex regex heuristics and introducing parsing ambiguity. A value-only crop feeds cleanly into token parsers and checksum validators.
 
 ### 3.2 Box Tightness (Approx. 2 px Margin)
-- Box borders must fit snugly around the characters with $\approx 2\text{ px}$ of margin.
+- Box borders must fit snugly around the characters with ≈ 2 px of margin.
 - Generous white margins allow adjacent line items or vertical table borders to leak into the OCR crop, corrupting character segmentation.
 
 ### 3.3 Final Grand Total Disambiguation
@@ -130,7 +130,7 @@ For `invoice_no`, `date`, `gstin`, and `total`, **annotate ONLY the VALUE string
 > **REVISED RULE FOR DEGRADED / PARTIALLY VISIBLE VALUES**:
 > **Label anything visible, even if partially truncated or degraded, and maintain a note for hard cases.**
 
-### Why the Previous "< 50% readable $\rightarrow$ do not annotate" Rule Was Flawed
+### Why the Previous "< 50% readable -> do not annotate" Rule Was Flawed
 In supervised object detection (such as YOLOv8/YOLOv11):
 1. **Unlabeled Objects are Treated as Background**:
    Any pixel region without a bounding box is treated as negative background by the focal/cross-entropy loss during training.

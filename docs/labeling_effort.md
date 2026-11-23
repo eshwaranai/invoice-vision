@@ -13,7 +13,7 @@ To accelerate annotation throughput, a unified heuristic suggester was developed
 > **Methodological Caveat: In-Sample vs Out-of-Sample Evaluation**
 > - The heuristic rules in `suggest.py` were designed specifically after inspecting failure modes on `batch_01`. Therefore, **all `batch_01` evaluation metrics are strictly in-sample (best case)**.
 > - `batch_02` consists of invoices from the same template families as `batch_01` (Microsoft, Sai Computer, Net2Source, LinkedIn) and is **also not independent**.
-> - **`batch_03` (Amazon template, $n=6$ images, including 3 continuation pages) represents the first true out-of-sample evaluation.**
+> - **`batch_03` (Amazon template, n=6 images, including 3 continuation pages) represents the first true out-of-sample evaluation.**
 > - On `batch_03`, performance dropped precipitously: only **6 of 25 reviewed boxes (24.0%)** were kept or adjusted, strict precision was **4 of 14 proposals (28.6%)**, and **8 of 14 proposals were deleted as false positives**.
 > - Any prior claim of a generalized "55% reduction in labeling effort" is **invalid across unseen templates**. That 55% reduction was observed strictly in-sample on `batch_01`. Out-of-sample, annotators still had to draw 76% of boxes by hand (19/25), while also spending time deleting spurious false positive proposals.
 
@@ -46,7 +46,7 @@ TOTAL / MACRO    35               0                   3        60               
 
 ## 3. In-Sample Suggester Evaluation (`batch_01` and `batch_02`)
 
-### 3.1 `batch_01` (In-Sample Calibration Batch, $n=15$)
+### 3.1 `batch_01` (In-Sample Calibration Batch, n=15)
 ```
 ==========================================================================================
 NEW SUGGESTER VS REVIEWED: batch_01 (IN-SAMPLE, n=15 images, 95 reviewed boxes)
@@ -66,7 +66,7 @@ TOTAL / MACRO    59               9                   12       27               
 ==========================================================================================
 ```
 
-### 3.2 `batch_02` (In-Sample Template Family, $n=3$, 20 reviewed boxes)
+### 3.2 `batch_02` (In-Sample Template Family, n=3, 20 reviewed boxes)
 `batch_02` contains images belonging to the same template families as `batch_01`. Because the heuristics were tuned on these exact layout patterns, performance remained artificially high:
 
 ```
@@ -139,8 +139,8 @@ To adhere to factual reporting, failure causes are categorized as **Verified fro
 - *Hypothesis*: *Broadening prefix stripping to include `Registration No` would recover Amazon GSTINs, but doing so without evaluating on unseen batches would constitute dev-set leakage.*
 
 ### 5.2 Vendor Header Extractor: 1/6 Kept, 5 Deleted (Verified from Data)
-- **Verified Fact**: On Amazon invoices, the vendor logo and registered address sit strictly on the top-left quadrant ($x \approx 0.08 \dots 0.35$, width $\approx 0.29$). There is no parallel right-aligned invoice metadata column at that vertical height.
-- **Root Cause**: In `suggest.py`, the dynamic horizontal barrier ($x_{split}$) is only activated if right-aligned metadata rows exist. In their absence, the algorithm grouped all text in the top 35% of the page across the full page width ($w \approx 0.88$ normalized). The resulting IoU against the tight ground-truth box ($w \approx 0.29$) fell to $\approx 0.20$ (below the $0.3$ lenient threshold), causing 5 proposals to be rejected as false positives.
+- **Verified Fact**: On Amazon invoices, the vendor logo and registered address sit strictly on the top-left quadrant (x ≈ 0.08 ... 0.35, width ≈ 0.29). There is no parallel right-aligned invoice metadata column at that vertical height.
+- **Root Cause**: In `suggest.py`, the dynamic horizontal barrier (x_split) is only activated if right-aligned metadata rows exist. In their absence, the algorithm grouped all text in the top 35% of the page across the full page width (w ≈ 0.88 normalized). The resulting IoU against the tight ground-truth box (w ≈ 0.29) fell to ≈ 0.20 (below the 0.3 lenient threshold), causing 5 proposals to be rejected as false positives.
 - **Continuation Pages**: `gst_025`, `gst_027`, and `gst_029` are continuation sheets containing only a small top logo and disclaimer paragraphs. The suggester grouped the entire top block, proposing invalid vendor boxes on pages where annotators marked only the small logo.
 
 ### 5.3 Total Extractor: 0/3 Kept, 3 Deleted (Verified from Data)
@@ -170,27 +170,27 @@ Rule-based heuristic suggesters exhibit extreme template sensitivity. While they
 ### Coordinate Transformation
 To leverage the reviewed ground-truth annotations without re-annotating degraded phone photos, annotations were mathematically propagated using the known ground-truth page corners from `data/processed/synth_photos/manifest.json`.
 
-For a source page, the perspective transformation matrix $H$ maps the unit square $[0, 1] \times [0, 1]$ directly to the four synthetic canvas corner coordinates $P_{dst}$:
-$$H = \text{cv2.getPerspectiveTransform}(P_{src}, P_{dst})$$
-Where $P_{src} = \begin{bmatrix} [0, 0], & [1, 0], & [1, 1], & [0, 1] \end{bmatrix}^T$.
+For a source page, the perspective transformation matrix H maps the unit square [0, 1] × [0, 1] directly to the four synthetic canvas corner coordinates P_dst:
+H = cv2.getPerspectiveTransform(P_src, P_dst)
+Where P_src = [[0, 0], [1, 0], [1, 1], [0, 1]]^T.
 
-Each normalized bounding box $(x_c, y_c, w, h)$ is decomposed into its 4 corner vertices:
-$$P_{box} = \begin{bmatrix} x_c - w/2 & y_c - h/2 \\ x_c + w/2 & y_c - h/2 \\ x_c + w/2 & y_c + h/2 \\ x_c - w/2 & y_c + h/2 \end{bmatrix}$$
-And warped via $P'_{box} = H \cdot P_{box}$.
+Each normalized bounding box (x_c, y_c, w, h) is decomposed into its 4 corner vertices:
+P_box = [[x_c - w/2, y_c - h/2], [x_c + w/2, y_c - h/2], [x_c + w/2, y_c + h/2], [x_c - w/2, y_c + h/2]]
+And warped via P'_box = H * P_box.
 
 ### Axis-Aligned Bounding Box (AABB) Loosening
 Standard YOLO object detection formats require axis-aligned bounding boxes (AABBs):
-$$x_{min} = \min(P'[:, 0]), \quad x_{max} = \max(P'[:, 0]), \quad y_{min} = \min(P'[:, 1]), \quad y_{max} = \max(P'[:, 1])$$
+x_min = min(P'[:, 0]), x_max = max(P'[:, 0]), y_min = min(P'[:, 1]), y_max = max(P'[:, 1])
 
-Because the invoice is subjected to non-zero perspective tilt and in-plane rotation ($\theta \ne 0$), the warped bounding box is an oriented quadrilateral. Enclosing this quadrilateral within an axis-aligned box geometrically expands the bounding box area:
-$$\text{Area}_{AABB} = (x_{max} - x_{min})(y_{max} - y_{min}) \ge \text{Area}_{quad}$$
-Where $\text{Area}_{quad}$ is computed via the Shoelace formula:
-$$\text{Area}_{quad} = \frac{1}{2} \left| \sum_{i=1}^{4} (x_i y_{i+1} - y_i x_{i+1}) \right|$$
+Because the invoice is subjected to non-zero perspective tilt and in-plane rotation (theta != 0), the warped bounding box is an oriented quadrilateral. Enclosing this quadrilateral within an axis-aligned box geometrically expands the bounding box area:
+Area_AABB = (x_max - x_min) * (y_max - y_min) >= Area_quad
+Where Area_quad is computed via the Shoelace formula:
+Area_quad = 0.5 * |sum_{i=1..4} (x_i y_{i+1} - y_i x_{i+1})|
 
 ### Empirical Loosening Measurements
 Evaluated across all **200 propagated bounding boxes** (32 synthetic phone photos):
 
-| Degradation Severity | Sample Boxes | Mean Loosening Ratio ($\text{Area}_{AABB} / \text{Area}_{quad}$) | Mean Area Expansion (%) | Std Dev |
+| Degradation Severity | Sample Boxes | Mean Loosening Ratio (Area_AABB / Area_quad) | Mean Area Expansion (%) | Std Dev |
 | :--- | :--- | :--- | :--- | :--- |
 | **mild** | 50 | **1.1193** | **+11.93%** | 0.0681 |
 | **medium** | 50 | **1.2033** | **+20.33%** | 0.1505 |
@@ -199,8 +199,8 @@ Evaluated across all **200 propagated bounding boxes** (32 synthetic phone photo
 | **OVERALL** | **200** | **1.2180** | **+21.80%** | **0.1950** |
 
 #### Engineering Implications of AABB Loosening:
-1. **Background Contamination**: At severe/hard tilt (up to $25^\circ$), an average of 23% to 32% extra background pixels (desk texture, adjacent table rows) enter the bounding box.
-2. **IoU Penalty**: Models trained on AABBs of rotated documents experience slightly degraded IoU evaluations against tight ground truths. For production deployments with extreme camera tilts, an Oriented Bounding Box (OBB) model (e.g., YOLO-OBB) should be preferred over standard 2D AABB.
+1. **Background Contamination**: At severe/hard tilt (up to 25°), an average of 23% to 32% extra background pixels (desk texture, adjacent table rows) enter the bounding box.
+2. **IoU Penalty**: Models trained on AABBs of rotated documents experience slightly degraded IoU evaluations against tight ground truths. For deployments with extreme camera tilts, an Oriented Bounding Box (OBB) model (e.g., YOLO-OBB) should be preferred over standard 2D AABB.
 3. **Verification Montage**: Visual inspection of 6 diverse synthetic samples (`mild`, `medium`, `severe`, `hard` on dark wood and light table) was verified in `results/figures/synth_label_check.jpg`. All boxes tightly envelop their respective text elements without clipped corners.
 
 ---
@@ -211,12 +211,12 @@ Evaluated across all **200 propagated bounding boxes** (32 synthetic phone photo
 - **Tradeoff**: Accepting relaxed prefix matching would increase recall (e.g., catching numbers near `Ref:`, `Order:`, or header `Tax Invoice`), but introduces false positive boxes that confuse annotators and degrade downstream parsing.
 - **Decision**: Enforced strict adjacent label rules (`Invoice No`, `Bill No`) and negative lookaheads (`Tax Invoice`, `Receipt`). Strict precision achieved **100.0%**. Annotators only need to add missing boxes rather than diagnose and delete misleading false proposals.
 
-### Decision 2: Spatial Metadata Barrier ($x_{split}$) for Vendor Blocks
+### Decision 2: Spatial Metadata Barrier (x_split) for Vendor Blocks
 - **Tradeoff**: Taking all text lines in the top 35% of the page as the vendor box causes company name blocks to merge with right-aligned metadata columns (Invoice Date, GSTIN, PO number).
-- **Decision**: Partitioned the top region with a dynamic horizontal barrier: if right-aligned metadata rows exist, the vendor block is horizontally clamped to the left of the minimum metadata $x$-coordinate, preserving clean vendor boundaries (73.3% lenient recall on in-sample data).
+- **Decision**: Partitioned the top region with a dynamic horizontal barrier: if right-aligned metadata rows exist, the vendor block is horizontally clamped to the left of the minimum metadata x-coordinate, preserving clean vendor boundaries (73.3% lenient recall on in-sample data).
 
 ### Decision 3: Character-Ratio Sub-Bounding Box Extraction for Merged OCR Tokens
 - **Tradeoff**: When OCR engines (such as EasyOCR) group labels and values into a single token (e.g., `Total Charges INR 12,450.751 RUPEES...`), returning the whole token produces an over-sized box containing unwanted label text.
 - **Decision**: Regex patterns isolate the target value substring within the token, and the sub-box is estimated proportional to character indices:
-  $$x_{min}^{sub} = x_{min} + \frac{\text{start\_idx}}{\text{token\_len}} \times (x_{max} - x_{min})$$
+  x_min_sub = x_min + (start_idx / token_len) * (x_max - x_min)
   This eliminates label contamination while preserving exact value coordinates.

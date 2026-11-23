@@ -76,5 +76,5 @@ Before committing any batch of annotations to the dataset, verify every image ag
 - [ ] **4. Total Disambiguation**: Is the labeled `total` strictly the final payable Grand Total (not Subtotal, Net Amount, or Taxable Value)?
 - [ ] **5. Table Coverage**: Does the `table` box cleanly cover the column headers down through the last item row?
 - [ ] **6. No Class Confusion**: Are QR codes labeled as `qr` (6) and official stamps/signatures labeled as `stamp_signature` (7)?
-- [ ] **7. Coordinate Validity**: Are all normalized YOLO coordinates strictly within $[0.0, 1.0]$?
+- [ ] **7. Coordinate Validity**: Are all normalized YOLO coordinates strictly within [0.0, 1.0]?
 - [ ] **8. No Overlapping Duplicates**: Are there any redundant double-boxes on the exact same token?
